@@ -89,12 +89,23 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  /* Github TEST */
+  /* Get the current running thread, set the delay ticks, and
+     yield the thread. */
+  /*
+  struct thread *cur = thread_current();
+
+  ASSERT (intr_get_level () == INTR_ON);
+  cur->delay = timer_ticks () + ticks;
+  thread_yield ();
+  */
+
+  /* DEFAULT CODE PROVIDED */
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
+  /**/
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
