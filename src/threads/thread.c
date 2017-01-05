@@ -28,6 +28,7 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+
 /* List of sleeping processes. When timer_sleep is called, processes
    are added directly into this list*/
 static struct list sleeping_lists;
@@ -96,6 +97,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+
   list_init (&sleeping_lists);
 
   /* Set up a thread structure for the running thread. */
