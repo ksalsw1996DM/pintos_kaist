@@ -24,6 +24,8 @@ static int64_t ticks;
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
 
+/* List of the sleeping threads waiting for unblocking */
+
 static intr_handler_func timer_interrupt;
 static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
@@ -89,17 +91,24 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
+  struct list* sleeping_lists = get_sleeping_lists();
   struct thread* current_thread;
   int64_t start = timer_ticks ();
   int64_t alarm = start + ticks;
+  enum intr_level curr_state;
 
+  curr_state=intr_disable();
+
+/*  Blocking current thread, set alarm, and add thread in 
+    increasing_wakeup_order  */
   current_thread = thread_current();
-  ASSERT (intr_get_level () == INTR_ON);
-  
-  current_thread.dest_tick = alarm;
+  current_thread->dest_tick = alarm;
   thread_block();
+  list_insert_ordered(sleeping_lists, &(current_thread->alarmelem), sort_alarm, NULL);
+  
+  intr_set_level(curr_state);
 /*  while (timer_elapsed (start) < ticks) 
-    thread_yield ();*/
+    thread_yield ();  */
 
 }
 
@@ -172,12 +181,13 @@ timer_print_stats (void)
 {
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
-
+
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+  thread_alarm(ticks);
   thread_tick ();
 }
 

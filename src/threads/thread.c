@@ -346,6 +346,23 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+void
+thread_alarm (int64_t tick){
+  struct thread *th;
+  while(!list_empty(&sleeping_lists)){
+    th=list_entry(list_front(&sleeping_lists), struct thread, alarmelem);
+    if(th->dest_tick > tick) break;
+    thread_unblock(th);
+    list_pop_front(&sleeping_lists);
+  }
+}
+
+/* Returns sleeping list, because it is declared static*/
+struct list*
+get_sleeping_lists (void)
+{
+  return &sleeping_lists;
+}
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
@@ -592,3 +609,13 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+bool
+sort_alarm (const struct list_elem *a,
+            const struct list_elem *b, 
+            void *aux){
+  struct thread* th1 = list_entry(a, struct thread, alarmelem);
+  struct thread* th2 = list_entry(b, struct thread, alarmelem);
+  if(th1->dest_tick < th2->dest_tick) return true;
+  else return false;
+}

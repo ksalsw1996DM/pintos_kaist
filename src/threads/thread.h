@@ -92,7 +92,7 @@ struct thread
 
     int16_t dest_tick;                 /* Informations about when the thread to wake up */
 
-
+    struct list_elem alarmelem;
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -122,6 +122,7 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 void thread_block (void);
 void thread_unblock (struct thread *);
+void thread_alarm (int64_t tick);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);
@@ -142,4 +143,6 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+struct list* get_sleeping_lists (void);
+bool sort_alarm (const struct list_elem *a, const struct list_elem *b, void *aux);
 #endif /* threads/thread.h */
