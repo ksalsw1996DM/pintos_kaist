@@ -70,7 +70,7 @@ timer_calibrate (void)
 
 /* Returns the number of timer ticks since the OS booted. */
 int64_t
-timer_ticks (void) 
+timer_ticks (void)
 {
   enum intr_level old_level = intr_disable ();
   int64_t t = ticks;
@@ -88,6 +88,7 @@ timer_elapsed (int64_t then)
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
+
 void
 timer_sleep (int64_t ticks) 
 {
@@ -96,16 +97,15 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
   int64_t alarm = start + ticks;
   enum intr_level curr_state;
-
   curr_state=intr_disable();
 
 /*  Blocking current thread, set alarm, and add thread in 
     increasing_wakeup_order  */
   current_thread = thread_current();
   current_thread->dest_tick = alarm;
-  thread_block();
   list_insert_ordered(sleeping_lists, &(current_thread->alarmelem), sort_alarm, NULL);
   
+  thread_block();
   intr_set_level(curr_state);
 /*  while (timer_elapsed (start) < ticks) 
     thread_yield ();  */
