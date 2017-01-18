@@ -215,7 +215,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+  switch_priority();
   return tid;
 }
 
@@ -252,7 +252,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &(t->elem), sort_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -323,7 +323,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered(&ready_list, &(cur->elem), sort_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -368,6 +368,7 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  switch_priority();
 }
 
 /* Returns the current thread's priority. */
@@ -517,10 +518,12 @@ alloc_frame (struct thread *t, size_t size)
 static struct thread *
 next_thread_to_run (void) 
 {
+  struct list_elem *list;
   if (list_empty (&ready_list))
     return idle_thread;
-  else
+  else{
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -618,4 +621,22 @@ sort_alarm (const struct list_elem *a,
   struct thread* th2 = list_entry(b, struct thread, alarmelem);
   if(th1->dest_tick < th2->dest_tick) return true;
   else return false;
+}
+
+bool
+sort_priority (const struct list_elem *a,
+  const struct list_elem *b,
+  void *aux){
+  struct thread* th1 = list_entry(a, struct thread, elem);
+  struct thread* th2 = list_entry(b, struct thread, elem);
+  if(th1->priority > th2->priority) return true;
+  else return false;
+} 
+
+void
+switch_priority (void)
+{
+  struct thread* cur = thread_current();
+  if(list_empty(&ready_list)) return;
+  else if(cur->priority < list_entry(list_front(&ready_list), struct thread, elem)->priority) thread_yield();
 }
