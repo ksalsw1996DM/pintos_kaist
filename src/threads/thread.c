@@ -216,6 +216,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+//  thread_yield();
   return tid;
 }
 
@@ -368,6 +369,7 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+//  thread_yield();
 }
 
 /* Returns the current thread's priority. */
@@ -520,7 +522,7 @@ next_thread_to_run (void)
   if (list_empty (&ready_list))
     return idle_thread;
   else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+    return list_entry (list_max(&ready_list, sort_priority, NULL), struct thread, elem);
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -531,7 +533,7 @@ next_thread_to_run (void)
    still disabled.  This function is normally invoked by
    thread_schedule() as its final action before returning, but
    the first time a thread is scheduled it is called by
-   switch_entry() (see switch.S).
+   switch_entry() (see switch.S). 
 
    It's not safe to call printf() until the thread switch is
    complete.  In practice that means that printf()s should be
@@ -617,5 +619,14 @@ sort_alarm (const struct list_elem *a,
   struct thread* th1 = list_entry(a, struct thread, alarmelem);
   struct thread* th2 = list_entry(b, struct thread, alarmelem);
   if(th1->dest_tick < th2->dest_tick) return true;
+  else return false;
+}
+bool
+sort_priority (const struct list_elem *a,
+            const struct list_elem *b, 
+            void *aux){
+  struct thread* th1 = list_entry(a, struct thread, alarmelem);
+  struct thread* th2 = list_entry(b, struct thread, alarmelem);
+  if(th1->priority < th2->priority) return true;
   else return false;
 }

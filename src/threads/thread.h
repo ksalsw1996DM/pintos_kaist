@@ -145,4 +145,5 @@ int thread_get_load_avg (void);
 
 struct list* get_sleeping_lists (void);
 bool sort_alarm (const struct list_elem *a, const struct list_elem *b, void *aux);
+bool sort_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 #endif /* threads/thread.h */
