@@ -206,28 +206,44 @@ lock_acquire (struct lock *lock)
 }
 
 void priority_donation(struct lock *lock){
-  //If called recursively, this if state might resolve the mess
+  /* If called recursively, this if state might resolve the mess */
   if(lock==NULL) return;
-
+ 
   struct thread *cur = thread_current();
   struct thread *lock_holder = lock->holder;
-  if(cur->priority > lock_holder->priority){
-    //switch to current thread
-    lock_holder->donated = true;
-    lock_holder->original_priority = lock_holder->priority;
-    lock_holder->priority = cur->priority;
-    //recursive priority donation to resolve nested priority donation
-    priority_donation(lock_holder->lock_th);
+  if(lock_holder!=NULL){
+    if(cur->priority > lock_holder->priority){
+      /* switch to current thread */
+      lock_holder->donated = true;
+      lock->holder_priority = lock_holder->priority; /* This is made to resolve multiple lock in one thread */
+      lock_holder->priority = cur->priority;
+
+      /* recursive priority donation to resolve nested priority donation */
+      priority_donation(lock_holder->lock_th);
+    }
+  }
+  else{
+    lock->holder_priority = cur->priority;
   }
 }
 
-//Called when lock_release is called. If priority donation happens, original priority is restored
+/* Called when lock_release is called. If priority donation happens, original priority is restored */
 void priority_donation_inverse(struct lock *lock){
   struct thread *lock_holder = lock->holder;
   if(lock_holder->donated){
-    lock_holder->priority = lock_holder->original_priority;
+    lock_holder->priority = list_entry(list_max(&(lock_holder->lock_list), sort_lock_priority, NULL), struct lock, lock_elem)->holder_priority;
     lock_holder->donated = false;
   }
+}
+
+bool
+sort_lock_priority (const struct list_elem *a,
+  const struct list_elem *b,
+  void *aux){
+  struct lock* lock1 = list_entry(a, struct thread, elem);
+  struct lock* lock2 = list_entry(b, struct thread, elem);
+  if(lock1->holder_priority < lock2->lock_holder) return true;
+  else return false;
 }
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current
