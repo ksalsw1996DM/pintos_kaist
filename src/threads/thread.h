@@ -92,9 +92,9 @@ struct thread
     struct list_elem allelem;           /* List element for all threads list. */
     struct list lock_list;              /* List of lock that current thread holds */
     int16_t dest_tick;                 /* Informations about when the thread to wake up */
-
+    struct lock* lock_th;               /* Lock that holds this thread */
     struct list_elem alarmelem;         /* list_elem used for alarm scheduling */
-
+    bool donated;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 

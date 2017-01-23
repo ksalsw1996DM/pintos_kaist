@@ -196,15 +196,39 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
   struct thread* cur = thread_current();
-  
+
+  cur->lock_th = lock;
   priority_donation(lock);
-
-  list_push_back(&cur->lock_list, lock->lock_elem);
-
   sema_down (&lock->semaphore);
+  list_push_back(&cur->lock_list, lock->lock_elem);
   lock->holder = cur;
+  cur->lock_th = NULL;
 }
 
+void priority_donation(struct lock *lock){
+  //If called recursively, this if state might resolve the mess
+  if(lock==NULL) return;
+
+  struct thread *cur = thread_current();
+  struct thread *lock_holder = lock->holder;
+  if(cur->priority > lock_holder->priority){
+    //switch to current thread
+    lock_holder->donated = true;
+    lock_holder->original_priority = lock_holder->priority;
+    lock_holder->priority = cur->priority;
+    //recursive priority donation to resolve nested priority donation
+    priority_donation(lock_holder->lock_th);
+  }
+}
+
+//Called when lock_release is called. If priority donation happens, original priority is restored
+void priority_donation_inverse(struct lock *lock){
+  struct thread *lock_holder = lock->holder;
+  if(lock_holder->donated){
+    lock_holder->priority = lock_holder->original_priority;
+    lock_holder->donated = false;
+  }
+}
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current
    thread.
@@ -236,6 +260,9 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
+  list_remove(&(lock->lock_elem));
+  priority_donation_inverse(lock);
+  
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
